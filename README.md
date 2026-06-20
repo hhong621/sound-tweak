@@ -1,6 +1,6 @@
 # Sound Tweak
 
-Browser playground for shaping short oscillator tones with the Web Audio API. Tweak frequency, waveform, gain, duration, and an optional biquad filter, then preview the result with a live spectrum visualizer.
+Browser playground for shaping short oscillator tones with the Web Audio API. Tweak waveform, gain, duration, and an optional biquad filter, then preview with a live pixel spectrum visualizer.
 
 ## Run
 
@@ -14,9 +14,10 @@ Click **Play** once to unlock audio (browsers require a user gesture).
 
 ## Controls
 
-- **Frequency** — set in Hz or pick a note and octave
-- **Oscillator** — sine, square, triangle, or sawtooth
-- **Filter** — optional lowpass, bandpass, or highpass with frequency and Q
-- **Export Settings** — copies the current config as JSON to the clipboard
+**Tweakpane** — frequency (Hz), oscillator type, gain, duration, optional filter (type, frequency, Q), **Play**, and **Export Settings** (params as JSON).
 
-Built with [Tweakpane](https://tweakpane.github.io/docs/) (loaded from CDN). No build step required.
+**Keyboard** — on-screen piano with QWERTY shortcuts (`s`–`k` naturals, `e`/`r`/`y`/`u`/`i` sharps). Octave slider (0–8). **Export** copies the last played note, octave, and current settings as JSON.
+
+**Visualizer** — pixel bar spectrum during playback; subtle idle animation otherwise.
+
+Built with [Tweakpane](https://tweakpane.github.io/docs/) (CDN). No build step.

@@ -321,8 +321,7 @@ updateOctaveDisplay();
 
 const pane = new Pane({ title: 'Sound Tweak', container: document.getElementById('pane-root') });
 
-const frequencyFolder = pane.addFolder({ title: 'Frequency', expanded: true });
-frequencyFolder.addBinding(params, 'frequency', {
+pane.addBinding(params, 'frequency', {
     min: 20,
     max: 4000,
     step: 1,

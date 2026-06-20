@@ -232,6 +232,57 @@ textarea {
     background: var(--panel-btn-active);
 }
 
+.octave-slider-wrap {
+    position: relative;
+    height: 28px;
+}
+
+.octave-slider-ticks {
+    position: absolute;
+    inset: 0 4px;
+    pointer-events: none;
+}
+
+.octave-slider-ticks::before,
+.octave-slider-ticks::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    opacity: 0.35;
+    background-repeat: no-repeat;
+    background-size: 1px 100%;
+    background-image:
+        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
+        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
+        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
+        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
+        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
+        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
+        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
+        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
+        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted));
+    background-position:
+        0% 0,
+        12.5% 0,
+        25% 0,
+        37.5% 0,
+        50% 0,
+        62.5% 0,
+        75% 0,
+        87.5% 0,
+        100% 0;
+}
+
+.octave-slider-ticks::before {
+    top: 9px;
+}
+
+.octave-slider-ticks::after {
+    bottom: 9px;
+}
+
 .control-slider {
     -webkit-appearance: none;
     appearance: none;
