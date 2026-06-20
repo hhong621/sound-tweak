@@ -2,6 +2,29 @@
     box-sizing: border-box;
 }
 
+:root {
+    /* Panel palette — shared by tweakpane and keyboard controls */
+    --panel-hue: 84;
+    --panel-bg: hsl(var(--panel-hue), 4%, 12%);
+    --panel-fg: hsl(var(--panel-hue), 7%, 75%);
+    --panel-fg-muted: hsla(var(--panel-hue), 7%, 75%, 0.7);
+    --panel-header-bg: hsla(var(--panel-hue), 7%, 75%, 0);
+    --panel-header-bg-hover: hsla(var(--panel-hue), 7%, 75%, 0.05);
+    --panel-header-bg-focus: hsla(var(--panel-hue), 7%, 75%, 0.1);
+    --panel-header-bg-active: hsla(var(--panel-hue), 7%, 75%, 0.15);
+    --panel-input-bg: hsla(var(--panel-hue), 7%, 75%, 0.1);
+    --panel-input-bg-hover: hsla(var(--panel-hue), 7%, 75%, 0.15);
+    --panel-input-bg-focus: hsla(var(--panel-hue), 7%, 75%, 0.2);
+    --panel-input-bg-active: hsla(var(--panel-hue), 7%, 75%, 0.25);
+    --panel-btn: hsl(var(--panel-hue), 3%, 40%);
+    --panel-btn-hover: hsl(var(--panel-hue), 3%, 45%);
+    --panel-btn-focus: hsl(var(--panel-hue), 3%, 50%);
+    --panel-btn-active: hsl(var(--panel-hue), 3%, 55%);
+    --panel-shadow: rgba(0, 0, 0, 0.25);
+    --panel-monitor-bg: hsla(var(--panel-hue), 7%, 0%, 0.2);
+    --panel-slider-fill: #ffd563;
+}
+
 body {
     margin: 0;
     min-height: 100vh;
@@ -25,27 +48,6 @@ textarea {
     left: 12px;
     width: 400px;
     z-index: 1;
-
-    /* Panel palette — tweak these to retheme the pane */
-    --panel-hue: 84;
-    --panel-bg: hsl(var(--panel-hue), 4%, 12%);
-    --panel-fg: hsl(var(--panel-hue), 7%, 75%);
-    --panel-fg-muted: hsla(var(--panel-hue), 7%, 75%, 0.7);
-    --panel-header-bg: hsla(var(--panel-hue), 7%, 75%, 0);
-    --panel-header-bg-hover: hsla(var(--panel-hue), 7%, 75%, 0.05);
-    --panel-header-bg-focus: hsla(var(--panel-hue), 7%, 75%, 0.1);
-    --panel-header-bg-active: hsla(var(--panel-hue), 7%, 75%, 0.15);
-    --panel-input-bg: hsla(var(--panel-hue), 7%, 75%, 0.1);
-    --panel-input-bg-hover: hsla(var(--panel-hue), 7%, 75%, 0.15);
-    --panel-input-bg-focus: hsla(var(--panel-hue), 7%, 75%, 0.2);
-    --panel-input-bg-active: hsla(var(--panel-hue), 7%, 75%, 0.25);
-    --panel-btn: hsl(var(--panel-hue), 3%, 40%);
-    --panel-btn-hover: hsl(var(--panel-hue), 3%, 45%);
-    --panel-btn-focus: hsl(var(--panel-hue), 3%, 50%);
-    --panel-btn-active: hsl(var(--panel-hue), 3%, 55%);
-    --panel-shadow: rgba(0, 0, 0, 0.25);
-    --panel-monitor-bg: hsla(var(--panel-hue), 7%, 0%, 0.2);
-    --panel-slider-fill: #ffd563;
 
     /* Tweakpane theme (override individual vars as needed) */
     --tp-base-background-color: var(--panel-bg);
@@ -122,27 +124,178 @@ textarea {
     height: 40px;
 }
 
-#viz {
+#viz-wrap {
     position: fixed;
     bottom: 32px;
     left: 50%;
     transform: translateX(-50%);
-    width: 400px;
-    height: 72px;
-    border-radius: 8px;
-    background: #000000;
+    width: 496px;
+    padding: 1px;
+    border-radius: 4px;
+    background: var(--panel-monitor-bg);
+    box-shadow: inset 0 0 0 1px var(--panel-input-bg);
+    box-sizing: border-box;
+}
+
+#viz {
     display: block;
+    width: 100%;
+    height: 72px;
+    background: #000000;
+    border-radius: 4px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 
 #keyboard-root {
     position: fixed;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -60%);
     width: min(90vw, 496px);
     z-index: 0;
     --key-gap: 8px;
     --key-width: calc((100% - 6 * var(--key-gap)) / 7);
+}
+
+.keyboard-controls {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 64px;
+}
+
+.control-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-panel:first-child {
+    width: 96px;
+}
+
+.control-panel:last-child {
+    flex: 1;
+    max-width: 160px;
+}
+
+.control-display {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: var(--panel-monitor-bg);
+    box-shadow: inset 0 0 0 1px var(--panel-input-bg);
+    min-height: 52px;
+}
+
+.control-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--panel-fg-muted);
+    text-transform: uppercase;
+}
+
+.control-value {
+    font-family: 'Doto', monospace;
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--panel-slider-fill);
+}
+
+.control-btn {
+    height: 28px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 4px;
+    background: var(--panel-btn);
+    color: var(--panel-bg);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.control-btn:hover {
+    background: var(--panel-btn-hover);
+}
+
+.control-btn:focus-visible {
+    outline: none;
+    background: var(--panel-btn-focus);
+}
+
+.control-btn:active {
+    background: var(--panel-btn-active);
+}
+
+.control-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 28px;
+    margin: 0;
+    padding: 0 4px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.control-slider::-webkit-slider-runnable-track {
+    height: 2px;
+    border-radius: 1px;
+    background: linear-gradient(
+        to right,
+        var(--panel-slider-fill) 0%,
+        var(--panel-slider-fill) var(--slider-fill, 50%),
+        var(--panel-input-bg) var(--slider-fill, 50%),
+        var(--panel-input-bg) 100%
+    );
+}
+
+.control-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    margin-top: -5px;
+    border: none;
+    border-radius: 2px;
+    background: var(--panel-btn-active);
+    box-shadow: 0 1px 2px var(--panel-shadow);
+}
+
+.control-slider::-moz-range-track {
+    height: 2px;
+    border: none;
+    border-radius: 1px;
+    background: var(--panel-input-bg);
+}
+
+.control-slider::-moz-range-progress {
+    height: 2px;
+    border-radius: 1px;
+    background: var(--panel-slider-fill);
+}
+
+.control-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: none;
+    border-radius: 2px;
+    background: var(--panel-btn-active);
+    box-shadow: 0 1px 2px var(--panel-shadow);
+}
+
+.control-slider:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--panel-btn-focus);
+    outline-offset: 2px;
+}
+
+.control-slider:focus-visible::-moz-range-thumb {
+    outline: 2px solid var(--panel-btn-focus);
+    outline-offset: 2px;
 }
 
 .keyboard-sharps {
@@ -165,7 +318,7 @@ textarea {
     padding: 8px 10px;
     height: 64px;
     border: none;
-    border-radius: 12px;
+    border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
     cursor: pointer;
     font-family: 'JetBrains Mono', monospace;
@@ -196,6 +349,15 @@ textarea {
     left: calc(var(--sharp-index) * (var(--key-width) + var(--key-gap)) + var(--key-width) / 2 + var(--key-gap) / 2);
     background: linear-gradient(135deg, #404040, #1a1a1a);
     color: #ffffff;
+    transition: transform 100ms ease-out;
+    will-change: transform;
+}
+
+.piano-key.sharp:active,
+.piano-key.sharp.pressed {
+    background: linear-gradient(135deg, #202020, #000000);
+    box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.5);
+    transform: scale(0.98);
 }
 
 .piano-key.sharp .key-shortcut {
@@ -205,6 +367,15 @@ textarea {
 .piano-key.natural {
     background: linear-gradient(135deg, #dddddd, #555555);
     color: #2c2c2c;
+    transition: transform 100ms ease-out;
+    will-change: transform;
+}
+
+.piano-key.natural:active,
+.piano-key.natural.pressed {
+    background: linear-gradient(135deg, #757575, #555555);
+    box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.5);
+    transform: scale(0.98);
 }
 
 .piano-key.natural .key-shortcut {

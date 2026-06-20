@@ -1,7 +1,5 @@
 import { Pane } from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js';
 
-const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-
 const NOTE_FREQUENCIES = {
     C:  [16.35, 32.70, 65.41, 130.81, 261.63, 523.25, 1046.50, 2093.00, 4186.01],
     'C#': [17.32, 34.65, 69.30, 138.59, 277.18, 554.37, 1108.73, 2217.46, 4434.92],
@@ -17,35 +15,11 @@ const NOTE_FREQUENCIES = {
     B:  [30.87, 61.74, 123.47, 246.94, 493.88, 987.77, 1975.53, 3951.07, 7902.13],
 };
 
-const NOTE_OPTIONS = Object.fromEntries(NOTES.map((n) => [n, n]));
-
 function frequencyFromNote(note, octave) {
     return NOTE_FREQUENCIES[note][octave];
 }
 
-function closestNoteFromFrequency(freq) {
-    let bestNote = 'A';
-    let bestOctave = 4;
-    let bestDiff = Infinity;
-
-    for (const note of NOTES) {
-        for (let octave = 0; octave <= 8; octave++) {
-            const diff = Math.abs(NOTE_FREQUENCIES[note][octave] - freq);
-            if (diff < bestDiff) {
-                bestDiff = diff;
-                bestNote = note;
-                bestOctave = octave;
-            }
-        }
-    }
-
-    return { note: bestNote, octave: bestOctave };
-}
-
 const params = {
-    frequencyMode: 'hz',
-    note: 'A',
-    octave: 4,
     frequency: 440,
     oscillatorType: 'sine',
     useFilter: false,
@@ -64,9 +38,14 @@ analyser.connect(audioContext.destination);
 
 const freqData = new Uint8Array(analyser.frequencyBinCount);
 const BAR_COUNT = 32;
+const VIZ_PIXEL = 4;
+const VIZ_PIXEL_GAP = 1;
+const VIZ_BAR_GAP = 2;
+const VIZ_BLOCKS_PER_BAR = 2;
 
 const vizCanvas = document.getElementById('viz');
 const vizCtx = vizCanvas.getContext('2d');
+vizCtx.imageSmoothingEnabled = false;
 let vizActive = false;
 let vizEndTime = 0;
 let idlePhase = 0;
@@ -77,13 +56,52 @@ function resizeViz() {
     vizCanvas.width = rect.width * dpr;
     vizCanvas.height = rect.height * dpr;
     vizCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    vizCtx.imageSmoothingEnabled = false;
+}
+
+function getVizGrid(w, h) {
+    const cell = VIZ_PIXEL + VIZ_PIXEL_GAP;
+    const rows = Math.max(1, Math.floor((h + VIZ_PIXEL_GAP) / cell));
+    const barWidth = VIZ_BLOCKS_PER_BAR * VIZ_PIXEL + (VIZ_BLOCKS_PER_BAR - 1) * VIZ_PIXEL_GAP;
+    const barStride = barWidth + VIZ_BAR_GAP;
+    const gridW = BAR_COUNT * barStride - VIZ_BAR_GAP;
+    const gridH = rows * VIZ_PIXEL + (rows - 1) * VIZ_PIXEL_GAP;
+
+    return {
+        rows,
+        originX: (w - gridW) / 2,
+        originY: (h - gridH) / 2,
+        barWidth,
+        barStride,
+    };
+}
+
+function drawPixelBlock(x, y, color) {
+    vizCtx.fillStyle = color;
+    vizCtx.fillRect(x, y, VIZ_PIXEL, VIZ_PIXEL);
+}
+
+function drawPixelBar(grid, barIndex, litRows, color) {
+    const { rows, originX, originY, barWidth, barStride } = grid;
+    const blocks = Math.max(1, Math.min(rows, Math.round(litRows)));
+    const barX = originX + barIndex * barStride;
+    const stackH = blocks * VIZ_PIXEL + (blocks - 1) * VIZ_PIXEL_GAP;
+    const stackY = originY + (rows * VIZ_PIXEL + (rows - 1) * VIZ_PIXEL_GAP - stackH) / 2;
+    const cell = VIZ_PIXEL + VIZ_PIXEL_GAP;
+
+    for (let row = 0; row < blocks; row++) {
+        const y = stackY + (blocks - 1 - row) * cell;
+        for (let col = 0; col < VIZ_BLOCKS_PER_BAR; col++) {
+            const x = barX + col * cell;
+            drawPixelBlock(x, y, color);
+        }
+    }
 }
 
 function drawViz() {
     const w = vizCanvas.clientWidth;
     const h = vizCanvas.clientHeight;
-    const gap = 3;
-    const barW = (w - gap * (BAR_COUNT - 1)) / BAR_COUNT;
+    const grid = getVizGrid(w, h);
     const playing = vizActive && performance.now() < vizEndTime;
 
     vizCtx.clearRect(0, 0, w, h);
@@ -94,14 +112,9 @@ function drawViz() {
 
         for (let i = 0; i < BAR_COUNT; i++) {
             const value = freqData[i * step] / 255;
-            const barH = Math.max(4, value * h * 0.92);
-            const x = i * (barW + gap);
-            const y = (h - barH) / 2;
-
-            vizCtx.fillStyle = `rgba(255, 213, 99, ${0.45 + value * 0.55})`;
-            vizCtx.beginPath();
-            vizCtx.roundRect(x, y, barW, barH, 2);
-            vizCtx.fill();
+            const litRows = 1 + value * (grid.rows - 1) * 0.92;
+            const alpha = 0.45 + value * 0.55;
+            drawPixelBar(grid, i, litRows, `rgba(255, 213, 99, ${alpha})`);
         }
     } else {
         if (vizActive && performance.now() >= vizEndTime) {
@@ -111,14 +124,8 @@ function drawViz() {
         idlePhase += 0.04;
         for (let i = 0; i < BAR_COUNT; i++) {
             const wave = (Math.sin(idlePhase + i * 0.35) + 1) / 2;
-            const barH = 4 + wave * 6;
-            const x = i * (barW + gap);
-            const y = (h - barH) / 2;
-
-            vizCtx.fillStyle = 'rgba(255, 213, 99, 0.18)';
-            vizCtx.beginPath();
-            vizCtx.roundRect(x, y, barW, barH, 2);
-            vizCtx.fill();
+            const litRows = 1 + wave * 2;
+            drawPixelBar(grid, i, litRows, 'rgba(255, 213, 99, 0.18)');
         }
     }
 
@@ -174,15 +181,35 @@ const keyToButton = Object.fromEntries(
     [...document.querySelectorAll('.piano-key')].map((btn) => [btn.dataset.key, btn]),
 );
 
+const lastNoteDisplay = document.getElementById('last-note-display');
+const octaveDisplay = document.getElementById('octave-display');
+const octaveSlider = document.getElementById('octave-slider');
+const noteExportBtn = document.getElementById('note-export-btn');
+
+let lastNote = null;
+let octave = 4;
+
+function updateOctaveDisplay() {
+    octaveDisplay.textContent = String(octave);
+    const fill = (octave / 8) * 100;
+    octaveSlider.style.setProperty('--slider-fill', `${fill}%`);
+}
+
+function updateLastNoteDisplay(note) {
+    lastNote = note;
+    lastNoteDisplay.textContent = note;
+}
+
 function setKeyPressed(key, pressed) {
     const btn = keyToButton[key];
     if (btn) btn.classList.toggle('pressed', pressed);
 }
 
 function playNote(note) {
+    updateLastNoteDisplay(note);
     const settings = {
         ...params,
-        frequency: frequencyFromNote(note, params.octave),
+        frequency: frequencyFromNote(note, octave),
     };
     playSound(audioContext, settings);
 }
@@ -193,14 +220,64 @@ async function triggerNote(note) {
 }
 
 document.querySelectorAll('.piano-key').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
         triggerNote(btn.dataset.note);
     });
 });
 
+function isTextEntryControl(element) {
+    if (!element) return false;
+    if (element.isContentEditable) return true;
+    const tag = element.tagName;
+    if (tag === 'TEXTAREA' || tag === 'SELECT') return true;
+    if (tag !== 'INPUT') return false;
+
+    const type = element.type;
+    return type !== 'range' && type !== 'checkbox' && type !== 'radio'
+        && type !== 'button' && type !== 'submit' && type !== 'reset';
+}
+
+function isRangeControl(element) {
+    return element?.tagName === 'INPUT' && element.type === 'range';
+}
+
+function shouldReleaseFocusOnChange(element) {
+    if (!element) return false;
+    if (isRangeControl(element)) return true;
+    if (element.tagName === 'SELECT') return true;
+    if (element.tagName === 'INPUT' && (element.type === 'checkbox' || element.type === 'radio')) {
+        return true;
+    }
+    return false;
+}
+
+function releaseControlFocus(container) {
+    requestAnimationFrame(() => {
+        const active = document.activeElement;
+        if (active && container.contains(active)) {
+            active.blur();
+        }
+    });
+}
+
+function setupControlFocusRelease(container) {
+    container.addEventListener('pointerup', () => {
+        const active = document.activeElement;
+        if (isRangeControl(active) && container.contains(active)) {
+            releaseControlFocus(container);
+        }
+    });
+    container.addEventListener('change', (e) => {
+        if (container.contains(e.target) && shouldReleaseFocusOnChange(e.target)) {
+            releaseControlFocus(container);
+        }
+    });
+}
+
 document.addEventListener('keydown', (e) => {
     if (e.repeat) return;
-    if (e.target.closest('input, select, textarea')) return;
+    if (isTextEntryControl(e.target)) return;
 
     const note = KEY_TO_NOTE[e.key];
     if (!note) return;
@@ -222,75 +299,35 @@ window.addEventListener('blur', () => {
     });
 });
 
+octaveSlider.addEventListener('input', () => {
+    octave = Number(octaveSlider.value);
+    updateOctaveDisplay();
+});
+
+noteExportBtn.addEventListener('click', async () => {
+    if (!lastNote) return;
+
+    const exportSettings = {
+        ...params,
+        note: lastNote,
+        octave,
+        frequency: frequencyFromNote(lastNote, octave),
+    };
+    await navigator.clipboard.writeText(JSON.stringify(exportSettings, null, 2));
+    alert('Settings copied to clipboard');
+});
+
+updateOctaveDisplay();
+
 const pane = new Pane({ title: 'Sound Tweak', container: document.getElementById('pane-root') });
 
 const frequencyFolder = pane.addFolder({ title: 'Frequency', expanded: true });
-const frequencyModeBinding = frequencyFolder.addBinding(params, 'frequencyMode', {
-    label: 'mode',
-    options: [
-        { text: 'Hz', value: 'hz' },
-        { text: 'Note', value: 'note' },
-    ],
-});
-const frequencyBinding = frequencyFolder.addBinding(params, 'frequency', {
+frequencyFolder.addBinding(params, 'frequency', {
     min: 20,
     max: 4000,
     step: 1,
     label: 'frequency',
 });
-const noteBinding = frequencyFolder.addBinding(params, 'note', {
-    label: 'note',
-    options: NOTE_OPTIONS,
-});
-const octaveBinding = frequencyFolder.addBinding(params, 'octave', {
-    min: 0,
-    max: 8,
-    step: 1,
-    label: 'octave',
-});
-
-function applyNoteFrequency() {
-    params.frequency = frequencyFromNote(params.note, params.octave);
-    pane.refresh();
-}
-
-function snapToClosestNote() {
-    const closest = closestNoteFromFrequency(params.frequency);
-    params.note = closest.note;
-    params.octave = closest.octave;
-    params.frequency = frequencyFromNote(params.note, params.octave);
-    pane.refresh();
-}
-
-function updateFrequencyVisibility() {
-    const noteMode = params.frequencyMode === 'note';
-    frequencyBinding.hidden = noteMode;
-    noteBinding.hidden = !noteMode;
-    octaveBinding.hidden = !noteMode;
-}
-
-frequencyModeBinding.on('change', () => {
-    updateFrequencyVisibility();
-    if (params.frequencyMode === 'note') {
-        snapToClosestNote();
-    } else {
-        pane.refresh();
-    }
-});
-
-noteBinding.on('change', () => {
-    if (params.frequencyMode === 'note') {
-        applyNoteFrequency();
-    }
-});
-
-octaveBinding.on('change', () => {
-    if (params.frequencyMode === 'note') {
-        applyNoteFrequency();
-    }
-});
-
-updateFrequencyVisibility();
 
 pane.addBinding(params, 'oscillatorType', {
     label: 'type',
@@ -332,16 +369,9 @@ function updateFilterVisibility() {
 useFilterBinding.on('change', updateFilterVisibility);
 updateFilterVisibility();
 
-const exportBtn = pane.addButton({ title: 'Export Settings' });
-exportBtn.on('click', async () => {
-    const { frequencyMode, note, octave, ...rest } = params;
-    const exportSettings = {
-        ...rest,
-        frequency: frequencyMode === 'note'
-            ? frequencyFromNote(note, octave)
-            : params.frequency,
-    };
-    await navigator.clipboard.writeText(JSON.stringify(exportSettings, null, 2));
+const paneExportBtn = pane.addButton({ title: 'Export Settings' });
+paneExportBtn.on('click', async () => {
+    await navigator.clipboard.writeText(JSON.stringify(params, null, 2));
     alert('Settings copied to clipboard');
 });
 
@@ -353,10 +383,13 @@ playBtn.on('click', async () => {
 
 const actionsRow = document.createElement('div');
 actionsRow.className = 'actions-row';
-const exportEl = exportBtn.element;
+const exportEl = paneExportBtn.element;
 const playEl = playBtn.element;
 exportEl.parentElement.insertBefore(actionsRow, exportEl);
 actionsRow.append(exportEl, playEl);
+
+setupControlFocusRelease(document.getElementById('pane-root'));
+setupControlFocusRelease(document.getElementById('keyboard-root'));
 
 resizeViz();
 window.addEventListener('resize', resizeViz);
