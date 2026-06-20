@@ -1,0 +1,222 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #101010;
+    color: #e8e8ec;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
+#pane-root {
+    font-family: inherit;
+    --tp-base-font-family: 'JetBrains Mono', monospace;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    width: 400px;
+    z-index: 1;
+
+    /* Panel palette — tweak these to retheme the pane */
+    --panel-hue: 84;
+    --panel-bg: hsl(var(--panel-hue), 4%, 12%);
+    --panel-fg: hsl(var(--panel-hue), 7%, 75%);
+    --panel-fg-muted: hsla(var(--panel-hue), 7%, 75%, 0.7);
+    --panel-header-bg: hsla(var(--panel-hue), 7%, 75%, 0);
+    --panel-header-bg-hover: hsla(var(--panel-hue), 7%, 75%, 0.05);
+    --panel-header-bg-focus: hsla(var(--panel-hue), 7%, 75%, 0.1);
+    --panel-header-bg-active: hsla(var(--panel-hue), 7%, 75%, 0.15);
+    --panel-input-bg: hsla(var(--panel-hue), 7%, 75%, 0.1);
+    --panel-input-bg-hover: hsla(var(--panel-hue), 7%, 75%, 0.15);
+    --panel-input-bg-focus: hsla(var(--panel-hue), 7%, 75%, 0.2);
+    --panel-input-bg-active: hsla(var(--panel-hue), 7%, 75%, 0.25);
+    --panel-btn: hsl(var(--panel-hue), 3%, 40%);
+    --panel-btn-hover: hsl(var(--panel-hue), 3%, 45%);
+    --panel-btn-focus: hsl(var(--panel-hue), 3%, 50%);
+    --panel-btn-active: hsl(var(--panel-hue), 3%, 55%);
+    --panel-shadow: rgba(0, 0, 0, 0.25);
+    --panel-monitor-bg: hsla(var(--panel-hue), 7%, 0%, 0.2);
+    --panel-slider-fill: #ffd563;
+
+    /* Tweakpane theme (override individual vars as needed) */
+    --tp-base-background-color: var(--panel-bg);
+    --tp-base-shadow-color: var(--panel-shadow);
+    --tp-blade-value-width: 280px;
+    --tp-button-background-color: var(--panel-btn);
+    --tp-button-background-color-hover: var(--panel-btn-hover);
+    --tp-button-background-color-focus: var(--panel-btn-focus);
+    --tp-button-background-color-active: var(--panel-btn-active);
+    --tp-button-foreground-color: var(--panel-bg);
+    --tp-container-background-color: var(--panel-header-bg);
+    --tp-container-background-color-hover: var(--panel-header-bg-hover);
+    --tp-container-background-color-focus: var(--panel-header-bg-focus);
+    --tp-container-background-color-active: var(--panel-header-bg-active);
+    --tp-container-foreground-color: var(--panel-fg);
+    --tp-input-background-color: var(--panel-input-bg);
+    --tp-input-background-color-hover: var(--panel-input-bg-hover);
+    --tp-input-background-color-focus: var(--panel-input-bg-focus);
+    --tp-input-background-color-active: var(--panel-input-bg-active);
+    --tp-input-foreground-color: var(--panel-fg);
+    --tp-label-foreground-color: var(--panel-fg-muted);
+    --tp-monitor-background-color: var(--panel-monitor-bg);
+    --tp-monitor-foreground-color: var(--panel-fg-muted);
+    --tp-groove-foreground-color: var(--panel-header-bg);
+}
+
+#pane-root .tp-sldv_k::before {
+    background-color: var(--panel-slider-fill);
+}
+
+#pane-root .tp-lstv_s {
+    background-color: var(--panel-input-bg);
+    color: var(--panel-fg);
+    color-scheme: dark;
+    font-weight: normal;
+}
+
+#pane-root .tp-lstv_s option {
+    background-color: var(--panel-bg);
+    color: var(--panel-fg);
+}
+
+#pane-root .tp-lstv_s:hover {
+    background-color: var(--panel-input-bg-hover);
+}
+
+#pane-root .tp-lstv_s:focus {
+    background-color: var(--panel-input-bg-focus);
+}
+
+#pane-root .tp-lstv_s:active {
+    background-color: var(--panel-input-bg-active);
+}
+
+#pane-root .tp-lstv_m {
+    color: var(--panel-fg);
+}
+
+#pane-root .tp-rotv {
+    width: 100%;
+}
+
+#pane-root .actions-row {
+    display: flex;
+    gap: 4px;
+}
+
+#pane-root .actions-row > * {
+    flex: 1;
+    min-width: 0;
+}
+
+#pane-root .actions-row .tp-btnv_b {
+    height: 40px;
+}
+
+#viz {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 400px;
+    height: 72px;
+    border-radius: 8px;
+    background: #000000;
+    display: block;
+}
+
+#keyboard-root {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(90vw, 496px);
+    z-index: 0;
+    --key-gap: 8px;
+    --key-width: calc((100% - 6 * var(--key-gap)) / 7);
+}
+
+.keyboard-sharps {
+    position: relative;
+    height: 64px;
+    margin-bottom: var(--key-gap);
+}
+
+.keyboard-naturals {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--key-gap);
+}
+
+.piano-key {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 8px 10px;
+    height: 64px;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.piano-key:focus {
+    outline: none;
+}
+
+.piano-key:focus-visible {
+    outline: 2px solid rgba(255, 213, 99, 0.6);
+    outline-offset: 2px;
+}
+
+.piano-key:active,
+.piano-key.pressed {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.piano-key.sharp {
+    position: absolute;
+    width: var(--key-width);
+    left: calc(var(--sharp-index) * (var(--key-width) + var(--key-gap)) + var(--key-width) / 2 + var(--key-gap) / 2);
+    background: linear-gradient(135deg, #404040, #1a1a1a);
+    color: #ffffff;
+}
+
+.piano-key.sharp .key-shortcut {
+    color: #a6a6a6;
+}
+
+.piano-key.natural {
+    background: linear-gradient(135deg, #dddddd, #555555);
+    color: #2c2c2c;
+}
+
+.piano-key.natural .key-shortcut {
+    color: #444444;
+}
+
+.key-shortcut {
+    font-size: 13px;
+}
+
+.key-shortcut.guide-key {
+    text-decoration: underline;
+    text-underline-offset: 5px;
+    text-decoration-thickness: 1.5px;
+}
