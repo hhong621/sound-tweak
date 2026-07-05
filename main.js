@@ -28,6 +28,7 @@ const params = {
     filterQ: 5,
     gain: 0.3,
     duration: 0.2,
+    sustainOnPress: false,
 };
 
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -48,7 +49,10 @@ const vizCtx = vizCanvas.getContext('2d');
 vizCtx.imageSmoothingEnabled = false;
 let vizActive = false;
 let vizEndTime = 0;
+let sustainVizCount = 0;
 let idlePhase = 0;
+const activeVoices = new Map();
+const RELEASE_SEC = 0.05;
 
 function resizeViz() {
     const dpr = window.devicePixelRatio || 1;
@@ -102,7 +106,7 @@ function drawViz() {
     const w = vizCanvas.clientWidth;
     const h = vizCanvas.clientHeight;
     const grid = getVizGrid(w, h);
-    const playing = vizActive && performance.now() < vizEndTime;
+    const playing = vizActive && (sustainVizCount > 0 || performance.now() < vizEndTime);
 
     vizCtx.clearRect(0, 0, w, h);
 
@@ -117,7 +121,7 @@ function drawViz() {
             drawPixelBar(grid, i, litRows, `rgba(255, 213, 99, ${alpha})`);
         }
     } else {
-        if (vizActive && performance.now() >= vizEndTime) {
+        if (vizActive && sustainVizCount === 0 && performance.now() >= vizEndTime) {
             vizActive = false;
         }
 
@@ -137,20 +141,19 @@ function startVisualization(durationSec) {
     vizEndTime = performance.now() + durationSec * 1000;
 }
 
-function playSound(context, settings) {
-    const now = context.currentTime;
+function createVoice(context, settings) {
     const oscillator = context.createOscillator();
     const gainNode = context.createGain();
 
     oscillator.type = settings.oscillatorType;
     oscillator.frequency.value = settings.frequency;
 
+    let filter = null;
     if (settings.useFilter) {
-        const filter = context.createBiquadFilter();
+        filter = context.createBiquadFilter();
         filter.type = settings.filterType;
         filter.frequency.value = settings.filterFrequency;
         filter.Q.value = settings.filterQ;
-
         oscillator.connect(filter);
         filter.connect(gainNode);
     } else {
@@ -158,12 +161,55 @@ function playSound(context, settings) {
     }
 
     gainNode.connect(analyser);
-    gainNode.gain.setValueAtTime(settings.gain, now);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, now + settings.duration);
+    return { oscillator, gainNode, filter };
+}
 
-    oscillator.start(now);
-    oscillator.stop(now + settings.duration);
+function releaseVoice(context, voice) {
+    const now = context.currentTime;
+    voice.gainNode.gain.cancelScheduledValues(now);
+    voice.gainNode.gain.setValueAtTime(voice.gainNode.gain.value, now);
+    voice.gainNode.gain.exponentialRampToValueAtTime(0.001, now + RELEASE_SEC);
+    voice.oscillator.stop(now + RELEASE_SEC);
+}
+
+function playSound(context, settings) {
+    const now = context.currentTime;
+    const voice = createVoice(context, settings);
+
+    voice.gainNode.gain.setValueAtTime(settings.gain, now);
+    voice.gainNode.gain.exponentialRampToValueAtTime(0.001, now + settings.duration);
+    voice.oscillator.start(now);
+    voice.oscillator.stop(now + settings.duration);
     startVisualization(settings.duration);
+}
+
+function startSustainedSound(context, settings, voiceId) {
+    stopSustainedSound(voiceId);
+
+    const now = context.currentTime;
+    const voice = createVoice(context, settings);
+
+    voice.gainNode.gain.setValueAtTime(settings.gain, now);
+    voice.oscillator.start(now);
+
+    activeVoices.set(voiceId, voice);
+    sustainVizCount++;
+    vizActive = true;
+
+    return voice;
+}
+
+function stopSustainedSound(voiceId) {
+    const voice = activeVoices.get(voiceId);
+    if (!voice) return;
+
+    activeVoices.delete(voiceId);
+    releaseVoice(audioContext, voice);
+    sustainVizCount = Math.max(0, sustainVizCount - 1);
+}
+
+function stopAllSustainedSounds() {
+    [...activeVoices.keys()].forEach(stopSustainedSound);
 }
 
 async function ensureAudioRunning() {
@@ -214,15 +260,45 @@ function playNote(note) {
     playSound(audioContext, settings);
 }
 
+function startNote(note) {
+    updateLastNoteDisplay(note);
+    const settings = {
+        ...params,
+        frequency: frequencyFromNote(note, octave),
+    };
+    startSustainedSound(audioContext, settings, `note:${note}`);
+}
+
+function stopNote(note) {
+    stopSustainedSound(`note:${note}`);
+}
+
 async function triggerNote(note) {
     await ensureAudioRunning();
-    playNote(note);
+    if (params.sustainOnPress) {
+        startNote(note);
+    } else {
+        playNote(note);
+    }
+}
+
+async function releaseNote(note) {
+    if (params.sustainOnPress) {
+        stopNote(note);
+    }
 }
 
 document.querySelectorAll('.piano-key').forEach((btn) => {
     btn.addEventListener('mousedown', (e) => {
         e.preventDefault();
         triggerNote(btn.dataset.note);
+    });
+    btn.addEventListener('mouseup', (e) => {
+        e.preventDefault();
+        releaseNote(btn.dataset.note);
+    });
+    btn.addEventListener('mouseleave', () => {
+        releaseNote(btn.dataset.note);
     });
 });
 
@@ -288,8 +364,10 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('keyup', (e) => {
-    if (KEY_TO_NOTE[e.key]) {
+    const note = KEY_TO_NOTE[e.key];
+    if (note) {
         setKeyPressed(e.key, false);
+        releaseNote(note);
     }
 });
 
@@ -297,6 +375,7 @@ window.addEventListener('blur', () => {
     document.querySelectorAll('.piano-key.pressed').forEach((btn) => {
         btn.classList.remove('pressed');
     });
+    stopAllSustainedSounds();
 });
 
 octaveSlider.addEventListener('input', () => {
@@ -339,6 +418,7 @@ pane.addBinding(params, 'oscillatorType', {
 });
 pane.addBinding(params, 'gain', { min: 0, max: 1, step: 0.01 });
 pane.addBinding(params, 'duration', { min: 0.01, max: 2, step: 0.01, label: 'duration' });
+pane.addBinding(params, 'sustainOnPress', { label: 'sustain on press' });
 
 const filterFolder = pane.addFolder({ title: 'Filter', expanded: true });
 const useFilterBinding = filterFolder.addBinding(params, 'useFilter', { label: 'enabled' });
@@ -375,9 +455,39 @@ paneExportBtn.on('click', async () => {
 });
 
 const playBtn = pane.addButton({ title: 'Play' });
-playBtn.on('click', async () => {
+const playBtnEl = playBtn.element.querySelector('button') ?? playBtn.element;
+
+async function startCustomFrequency() {
     await ensureAudioRunning();
-    playSound(audioContext, params);
+    if (params.sustainOnPress) {
+        startSustainedSound(audioContext, params, 'custom');
+    } else {
+        playSound(audioContext, params);
+    }
+}
+
+function stopCustomFrequency() {
+    if (params.sustainOnPress) {
+        stopSustainedSound('custom');
+    }
+}
+
+playBtnEl.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    startCustomFrequency();
+});
+
+playBtnEl.addEventListener('pointerup', (e) => {
+    e.preventDefault();
+    stopCustomFrequency();
+});
+
+playBtnEl.addEventListener('pointerleave', () => {
+    stopCustomFrequency();
+});
+
+playBtnEl.addEventListener('pointercancel', () => {
+    stopCustomFrequency();
 });
 
 const actionsRow = document.createElement('div');
