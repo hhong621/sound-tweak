@@ -18,4 +18,4 @@ Click **Play** once to unlock audio (browsers require a user gesture).
 
 **Keyboard** — on-screen piano with QWERTY shortcuts (`s`–`k` naturals, `e`/`r`/`y`/`u`/`i` sharps). Octave slider (0–8). **Export** copies the last played note, octave, and current settings as JSON.
 
-Built with [Tweakpane](https://tweakpane.github.io/docs/) (CDN). No build step.
+Built with [Tweakpane](https://tweakpane.github.io/docs/) (CDN). No build step. 
