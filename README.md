@@ -14,8 +14,12 @@ Click **Play** once to unlock audio (browsers require a user gesture).
 
 ## Controls
 
-**Tweakpane** — frequency (Hz), oscillator type, gain, duration, optional filter (type, frequency, Q), **Play**, and **Export Settings** (params as JSON).
+**Top bar** — spectrum visualizer (center), **Export Last Played** (last note + current settings as JSON). **Initial Setup** is a placeholder with no behavior yet.
 
-**Keyboard** — on-screen piano with QWERTY shortcuts (`s`–`k` naturals, `e`/`r`/`y`/`u`/`i` sharps). Octave slider (0–8). **Export** copies the last played note, octave, and current settings as JSON.
+**Gain Node** — gain, duration, sustain-on-press toggle.
 
-Built with [Tweakpane](https://tweakpane.github.io/docs/) (CDN). No build step. 
+**Biquad Filter** — enable toggle, type (lowpass / bandpass / highpass), frequency, Q.
+
+**Oscillator Node** — frequency, waveform type, **Play**, octave slider (0–8), last note display, and on-screen piano with QWERTY shortcuts (`s`–`k` naturals, `e`/`r`/`y`/`u`/`i` sharps).
+
+No build step. Vanilla HTML, CSS, and ES modules.

@@ -1,5 +1,3 @@
-import { Pane } from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js';
-
 const NOTE_FREQUENCIES = {
     C:  [16.35, 32.70, 65.41, 130.81, 261.63, 523.25, 1046.50, 2093.00, 4186.01],
     'C#': [17.32, 34.65, 69.30, 138.59, 277.18, 554.37, 1108.73, 2217.46, 4434.92],
@@ -231,14 +229,151 @@ const lastNoteDisplay = document.getElementById('last-note-display');
 const octaveDisplay = document.getElementById('octave-display');
 const octaveSlider = document.getElementById('octave-slider');
 const noteExportBtn = document.getElementById('note-export-btn');
+const playBtn = document.getElementById('play-btn');
 
 let lastNote = null;
+let lastPlayed = null;
 let octave = 4;
+
+function formatParamValue(value, step) {
+    if (!Number.isFinite(step) || step >= 1) return String(Math.round(value));
+    const decimals = Math.max(0, Math.round(-Math.log10(step)));
+    return value.toFixed(decimals);
+}
+
+function setSliderFill(slider) {
+    const min = Number(slider.min);
+    const max = Number(slider.max);
+    const value = Number(slider.value);
+    const fill = max === min ? 0 : ((value - min) / (max - min)) * 100;
+    slider.style.setProperty('--slider-fill', `${fill}%`);
+}
+
+function bindParamControl({ key, slider, number, parse = Number }) {
+    const syncFromValue = (raw) => {
+        const min = Number(slider.min);
+        const max = Number(slider.max);
+        const step = Number(slider.step) || 1;
+        let value = parse(raw);
+        if (!Number.isFinite(value)) value = params[key];
+        value = Math.min(max, Math.max(min, value));
+        if (step >= 1) {
+            value = Math.round(value);
+        } else {
+            value = Math.round(value / step) * step;
+            value = Number(value.toFixed(6));
+        }
+        params[key] = value;
+        slider.value = String(value);
+        number.value = formatParamValue(value, step);
+        setSliderFill(slider);
+    };
+
+    syncFromValue(params[key]);
+
+    slider.addEventListener('input', () => {
+        syncFromValue(slider.value);
+    });
+
+    number.addEventListener('change', () => {
+        syncFromValue(number.value);
+    });
+
+    number.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            syncFromValue(number.value);
+            number.blur();
+        }
+    });
+}
+
+function prepareSegmentedButton(btn) {
+    if (btn.querySelector('.segmented-btn-glows')) return;
+
+    const existingLabel = btn.querySelector('.segmented-btn-label');
+    const label = (existingLabel ? existingLabel.textContent : btn.textContent).trim();
+    btn.replaceChildren();
+
+    const glowWrap = document.createElement('span');
+    glowWrap.className = 'segmented-btn-glows';
+    glowWrap.setAttribute('aria-hidden', 'true');
+
+    for (let i = 0; i < 3; i++) {
+        const glow = document.createElement('span');
+        glow.className = 'segmented-btn-glow';
+        glowWrap.appendChild(glow);
+    }
+
+    btn.appendChild(glowWrap);
+
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'segmented-btn-label';
+    labelSpan.textContent = label;
+    btn.appendChild(labelSpan);
+}
+
+function bindSegmentedGroup(group, key) {
+    const buttons = [...group.querySelectorAll('.segmented-btn')];
+    buttons.forEach(prepareSegmentedButton);
+
+    const sync = () => {
+        buttons.forEach((btn) => {
+            btn.classList.toggle('is-active', btn.dataset.value === params[key]);
+        });
+    };
+
+    buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            params[key] = btn.dataset.value;
+            sync();
+        });
+    });
+
+    sync();
+}
+
+function bindToggle(checkbox, key) {
+    checkbox.checked = Boolean(params[key]);
+    checkbox.addEventListener('change', () => {
+        params[key] = checkbox.checked;
+    });
+}
+
+bindParamControl({
+    key: 'gain',
+    slider: document.getElementById('gain-slider'),
+    number: document.getElementById('gain-number'),
+});
+bindParamControl({
+    key: 'duration',
+    slider: document.getElementById('duration-slider'),
+    number: document.getElementById('duration-number'),
+});
+bindParamControl({
+    key: 'frequency',
+    slider: document.getElementById('frequency-slider'),
+    number: document.getElementById('frequency-number'),
+});
+bindParamControl({
+    key: 'filterFrequency',
+    slider: document.getElementById('filter-frequency-slider'),
+    number: document.getElementById('filter-frequency-number'),
+});
+bindParamControl({
+    key: 'filterQ',
+    slider: document.getElementById('filter-q-slider'),
+    number: document.getElementById('filter-q-number'),
+});
+
+bindToggle(document.getElementById('sustain-toggle'), 'sustainOnPress');
+bindToggle(document.getElementById('filter-toggle'), 'useFilter');
+bindSegmentedGroup(document.getElementById('filter-type-group'), 'filterType');
+bindSegmentedGroup(document.getElementById('oscillator-type-group'), 'oscillatorType');
 
 function updateOctaveDisplay() {
     octaveDisplay.textContent = String(octave);
-    const fill = (octave / 8) * 100;
-    octaveSlider.style.setProperty('--slider-fill', `${fill}%`);
+    setSliderFill(octaveSlider);
 }
 
 function updateLastNoteDisplay(note) {
@@ -251,12 +386,19 @@ function setKeyPressed(key, pressed) {
     if (btn) btn.classList.toggle('pressed', pressed);
 }
 
+function recordLastPlayed(settings) {
+    lastPlayed = settings;
+}
+
 function playNote(note) {
     updateLastNoteDisplay(note);
     const settings = {
         ...params,
+        note,
+        octave,
         frequency: frequencyFromNote(note, octave),
     };
+    recordLastPlayed(settings);
     playSound(audioContext, settings);
 }
 
@@ -264,8 +406,11 @@ function startNote(note) {
     updateLastNoteDisplay(note);
     const settings = {
         ...params,
+        note,
+        octave,
         frequency: frequencyFromNote(note, octave),
     };
+    recordLastPlayed(settings);
     startSustainedSound(audioContext, settings, `note:${note}`);
 }
 
@@ -355,6 +500,13 @@ document.addEventListener('keydown', (e) => {
     if (e.repeat) return;
     if (isTextEntryControl(e.target)) return;
 
+    if (e.key === ' ' && e.shiftKey) {
+        e.preventDefault();
+        playBtn.classList.add('pressed');
+        startCustomFrequency();
+        return;
+    }
+
     const note = KEY_TO_NOTE[e.key];
     if (!note) return;
 
@@ -364,6 +516,15 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('keyup', (e) => {
+    if (e.key === ' ') {
+        if (playBtn.classList.contains('pressed')) {
+            e.preventDefault();
+            playBtn.classList.remove('pressed');
+            stopCustomFrequency();
+        }
+        return;
+    }
+
     const note = KEY_TO_NOTE[e.key];
     if (note) {
         setKeyPressed(e.key, false);
@@ -375,6 +536,7 @@ window.addEventListener('blur', () => {
     document.querySelectorAll('.piano-key.pressed').forEach((btn) => {
         btn.classList.remove('pressed');
     });
+    playBtn.classList.remove('pressed');
     stopAllSustainedSounds();
 });
 
@@ -384,81 +546,22 @@ octaveSlider.addEventListener('input', () => {
 });
 
 noteExportBtn.addEventListener('click', async () => {
-    if (!lastNote) return;
+    if (!lastPlayed) {
+        alert('Play a note or press Play first.');
+        return;
+    }
 
-    const exportSettings = {
-        ...params,
-        note: lastNote,
-        octave,
-        frequency: frequencyFromNote(lastNote, octave),
-    };
-    await navigator.clipboard.writeText(JSON.stringify(exportSettings, null, 2));
-    alert('Settings copied to clipboard');
+    try {
+        await navigator.clipboard.writeText(JSON.stringify(lastPlayed, null, 2));
+        alert('Settings copied to clipboard');
+    } catch {
+        alert('Could not copy to clipboard. Serve the page over localhost (e.g. npx serve .) and try again.');
+    }
 });
-
-updateOctaveDisplay();
-
-const pane = new Pane({ title: 'Sound Tweak', container: document.getElementById('pane-root') });
-
-pane.addBinding(params, 'frequency', {
-    min: 20,
-    max: 4000,
-    step: 1,
-    label: 'frequency',
-});
-
-pane.addBinding(params, 'oscillatorType', {
-    label: 'type',
-    options: {
-        sine: 'sine',
-        square: 'square',
-        triangle: 'triangle',
-        sawtooth: 'sawtooth',
-    },
-});
-pane.addBinding(params, 'gain', { min: 0, max: 1, step: 0.01 });
-pane.addBinding(params, 'duration', { min: 0.01, max: 2, step: 0.01, label: 'duration' });
-pane.addBinding(params, 'sustainOnPress', { label: 'sustain on press' });
-
-const filterFolder = pane.addFolder({ title: 'Filter', expanded: true });
-const useFilterBinding = filterFolder.addBinding(params, 'useFilter', { label: 'enabled' });
-const filterTypeBinding = filterFolder.addBinding(params, 'filterType', {
-    label: 'type',
-    options: {
-        lowpass: 'lowpass',
-        bandpass: 'bandpass',
-        highpass: 'highpass',
-    },
-});
-const filterFrequencyBinding = filterFolder.addBinding(params, 'filterFrequency', {
-    min: 20,
-    max: 20000,
-    step: 1,
-    label: 'frequency',
-});
-const filterQBinding = filterFolder.addBinding(params, 'filterQ', { min: 0.1, max: 30, step: 0.1, label: 'Q' });
-
-function updateFilterVisibility() {
-    const hidden = !params.useFilter;
-    filterTypeBinding.hidden = hidden;
-    filterFrequencyBinding.hidden = hidden;
-    filterQBinding.hidden = hidden;
-}
-
-useFilterBinding.on('change', updateFilterVisibility);
-updateFilterVisibility();
-
-const paneExportBtn = pane.addButton({ title: 'Export Settings' });
-paneExportBtn.on('click', async () => {
-    await navigator.clipboard.writeText(JSON.stringify(params, null, 2));
-    alert('Settings copied to clipboard');
-});
-
-const playBtn = pane.addButton({ title: 'Play' });
-const playBtnEl = playBtn.element.querySelector('button') ?? playBtn.element;
 
 async function startCustomFrequency() {
     await ensureAudioRunning();
+    recordLastPlayed({ ...params });
     if (params.sustainOnPress) {
         startSustainedSound(audioContext, params, 'custom');
     } else {
@@ -472,33 +575,26 @@ function stopCustomFrequency() {
     }
 }
 
-playBtnEl.addEventListener('pointerdown', (e) => {
+playBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     startCustomFrequency();
 });
 
-playBtnEl.addEventListener('pointerup', (e) => {
+playBtn.addEventListener('pointerup', (e) => {
     e.preventDefault();
     stopCustomFrequency();
 });
 
-playBtnEl.addEventListener('pointerleave', () => {
+playBtn.addEventListener('pointerleave', () => {
     stopCustomFrequency();
 });
 
-playBtnEl.addEventListener('pointercancel', () => {
+playBtn.addEventListener('pointercancel', () => {
     stopCustomFrequency();
 });
 
-const actionsRow = document.createElement('div');
-actionsRow.className = 'actions-row';
-const exportEl = paneExportBtn.element;
-const playEl = playBtn.element;
-exportEl.parentElement.insertBefore(actionsRow, exportEl);
-actionsRow.append(exportEl, playEl);
-
-setupControlFocusRelease(document.getElementById('pane-root'));
-setupControlFocusRelease(document.getElementById('keyboard-root'));
+updateOctaveDisplay();
+setupControlFocusRelease(document.getElementById('app'));
 
 resizeViz();
 window.addEventListener('resize', resizeViz);
