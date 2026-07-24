@@ -29,6 +29,71 @@ const params = {
     sustainOnPress: false,
 };
 
+const SLIDER_TICK_SOUND = {
+    frequency: 4000,
+    oscillatorType: 'triangle',
+    useFilter: true,
+    filterType: 'highpass',
+    filterFrequency: 5000,
+    filterQ: 10.8,
+    gain: 1,
+    duration: 0.01,
+    sustainOnPress: false,
+};
+
+const TOGGLE_CLICK_SOUNDS = [
+    {
+        frequency: 3135.96,
+        oscillatorType: 'sine',
+        useFilter: true,
+        filterType: 'bandpass',
+        filterFrequency: 6000,
+        filterQ: 2,
+        gain: 0.8,
+        duration: 0.01,
+        sustainOnPress: false,
+        note: 'G',
+        octave: 7,
+    },
+    {
+        frequency: 3951.07,
+        oscillatorType: 'sine',
+        useFilter: true,
+        filterType: 'bandpass',
+        filterFrequency: 6000,
+        filterQ: 2,
+        gain: 0.8,
+        duration: 0.01,
+        sustainOnPress: false,
+        note: 'B',
+        octave: 7,
+    },
+];
+
+const UI_BUTTON_DOWN_SOUND = {
+    frequency: 630,
+    oscillatorType: 'sine',
+    useFilter: true,
+    filterType: 'bandpass',
+    filterFrequency: 2400,
+    filterQ: 1,
+    gain: 0.5,
+    duration: 0.01,
+    sustainOnPress: false,
+};
+
+const UI_BUTTON_UP_SOUND = {
+    frequency: 2000,
+    oscillatorType: 'triangle',
+    useFilter: true,
+    filterType: 'lowpass',
+    filterFrequency: 12000,
+    filterQ: 10,
+    gain: 0.5,
+    duration: 0.01,
+    sustainOnPress: false,
+};
+
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 const analyser = audioContext.createAnalyser();
 analyser.fftSize = 256;
@@ -139,7 +204,7 @@ function startVisualization(durationSec) {
     vizEndTime = performance.now() + durationSec * 1000;
 }
 
-function createVoice(context, settings) {
+function createVoice(context, settings, output = analyser) {
     const oscillator = context.createOscillator();
     const gainNode = context.createGain();
 
@@ -158,7 +223,7 @@ function createVoice(context, settings) {
         oscillator.connect(gainNode);
     }
 
-    gainNode.connect(analyser);
+    gainNode.connect(output);
     return { oscillator, gainNode, filter };
 }
 
@@ -170,15 +235,18 @@ function releaseVoice(context, voice) {
     voice.oscillator.stop(now + RELEASE_SEC);
 }
 
-function playSound(context, settings) {
-    const now = context.currentTime;
-    const voice = createVoice(context, settings);
+function playSound(context, settings, { visualize = true, startTime } = {}) {
+    const now = startTime ?? context.currentTime;
+    const output = visualize ? analyser : context.destination;
+    const voice = createVoice(context, settings, output);
 
     voice.gainNode.gain.setValueAtTime(settings.gain, now);
     voice.gainNode.gain.exponentialRampToValueAtTime(0.001, now + settings.duration);
     voice.oscillator.start(now);
     voice.oscillator.stop(now + settings.duration);
-    startVisualization(settings.duration);
+    if (visualize) {
+        startVisualization(settings.duration);
+    }
 }
 
 function startSustainedSound(context, settings, voiceId) {
@@ -249,6 +317,67 @@ function setSliderFill(slider) {
     slider.style.setProperty('--slider-fill', `${fill}%`);
 }
 
+async function playSliderTickSound() {
+    await ensureAudioRunning();
+    playSound(audioContext, SLIDER_TICK_SOUND, { visualize: false });
+}
+
+async function playToggleClickSounds() {
+    await ensureAudioRunning();
+    let startTime = audioContext.currentTime;
+    for (const settings of TOGGLE_CLICK_SOUNDS) {
+        playSound(audioContext, settings, { visualize: false, startTime });
+        startTime += settings.duration;
+    }
+}
+
+async function playUiButtonDownSound() {
+    await ensureAudioRunning();
+    playSound(audioContext, UI_BUTTON_DOWN_SOUND, { visualize: false });
+}
+
+async function playUiButtonUpSound() {
+    await ensureAudioRunning();
+    playSound(audioContext, UI_BUTTON_UP_SOUND, { visualize: false });
+}
+
+const uiButtonPressSoundBound = new WeakSet();
+
+function bindUiButtonPressSounds(button) {
+    if (uiButtonPressSoundBound.has(button)) return;
+    uiButtonPressSoundBound.add(button);
+
+    button.addEventListener('pointerdown', (e) => {
+        if (button.disabled) return;
+        if (e.button !== 0) return;
+        button.setPointerCapture(e.pointerId);
+        void playUiButtonDownSound();
+    });
+
+    const onRelease = (e) => {
+        if (e.button !== 0 && e.type === 'pointerup') return;
+        if (button.hasPointerCapture(e.pointerId)) {
+            button.releasePointerCapture(e.pointerId);
+        }
+        if (button.disabled) return;
+        void playUiButtonUpSound();
+    };
+
+    button.addEventListener('pointerup', onRelease);
+    button.addEventListener('pointercancel', onRelease);
+}
+
+function bindSliderStepTick(slider, onStep) {
+    let lastValue = Number(slider.value);
+    slider.addEventListener('input', async () => {
+        const next = Number(slider.value);
+        if (next === lastValue) return;
+        lastValue = next;
+        onStep(next);
+        await playSliderTickSound();
+    });
+}
+
 function bindParamControl({ key, slider, number, parse = Number }) {
     const syncFromValue = (raw) => {
         const min = Number(slider.min);
@@ -271,8 +400,11 @@ function bindParamControl({ key, slider, number, parse = Number }) {
 
     syncFromValue(params[key]);
 
-    slider.addEventListener('input', () => {
+    slider.addEventListener('input', async () => {
+        const previous = params[key];
         syncFromValue(slider.value);
+        if (params[key] === previous) return;
+        await playSliderTickSound();
     });
 
     number.addEventListener('change', () => {
@@ -316,6 +448,7 @@ function prepareSegmentedButton(btn) {
 function bindSegmentedGroup(group, key) {
     const buttons = [...group.querySelectorAll('.segmented-btn')];
     buttons.forEach(prepareSegmentedButton);
+    buttons.forEach(bindUiButtonPressSounds);
 
     const sync = () => {
         buttons.forEach((btn) => {
@@ -333,10 +466,30 @@ function bindSegmentedGroup(group, key) {
     sync();
 }
 
-function bindToggle(checkbox, key) {
+function bindToggle(checkbox, key, onChange) {
     checkbox.checked = Boolean(params[key]);
-    checkbox.addEventListener('change', () => {
+    checkbox.addEventListener('change', async () => {
         params[key] = checkbox.checked;
+        onChange?.();
+        await playToggleClickSounds();
+    });
+}
+
+const filterTypeGroup = document.getElementById('filter-type-group');
+const filterParamControls = [
+    document.getElementById('filter-frequency-slider'),
+    document.getElementById('filter-frequency-number'),
+    document.getElementById('filter-q-slider'),
+    document.getElementById('filter-q-number'),
+];
+
+function syncFilterControlsEnabled() {
+    const enabled = params.useFilter;
+    filterParamControls.forEach((el) => {
+        el.disabled = !enabled;
+    });
+    filterTypeGroup.querySelectorAll('.segmented-btn').forEach((btn) => {
+        btn.disabled = !enabled;
     });
 }
 
@@ -367,8 +520,9 @@ bindParamControl({
 });
 
 bindToggle(document.getElementById('sustain-toggle'), 'sustainOnPress');
-bindToggle(document.getElementById('filter-toggle'), 'useFilter');
-bindSegmentedGroup(document.getElementById('filter-type-group'), 'filterType');
+bindToggle(document.getElementById('filter-toggle'), 'useFilter', syncFilterControlsEnabled);
+bindSegmentedGroup(filterTypeGroup, 'filterType');
+syncFilterControlsEnabled();
 bindSegmentedGroup(document.getElementById('oscillator-type-group'), 'oscillatorType');
 
 function updateOctaveDisplay() {
@@ -540,8 +694,8 @@ window.addEventListener('blur', () => {
     stopAllSustainedSounds();
 });
 
-octaveSlider.addEventListener('input', () => {
-    octave = Number(octaveSlider.value);
+bindSliderStepTick(octaveSlider, (next) => {
+    octave = next;
     updateOctaveDisplay();
 });
 
@@ -594,6 +748,7 @@ playBtn.addEventListener('pointercancel', () => {
 });
 
 updateOctaveDisplay();
+document.querySelectorAll('.bar-btn').forEach(bindUiButtonPressSounds);
 setupControlFocusRelease(document.getElementById('app'));
 
 resizeViz();

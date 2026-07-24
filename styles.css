@@ -3,21 +3,21 @@
 }
 
 :root {
-    --panel-hue: 84;
-    --panel-bg: hsl(var(--panel-hue), 4%, 12%);
-    --panel-fg: hsl(var(--panel-hue), 7%, 75%);
-    --panel-fg-muted: hsla(var(--panel-hue), 7%, 75%, 0.7);
-    --panel-input-bg: hsla(var(--panel-hue), 7%, 75%, 0.1);
-    --panel-input-bg-hover: hsla(var(--panel-hue), 7%, 75%, 0.15);
-    --panel-input-bg-focus: hsla(var(--panel-hue), 7%, 75%, 0.2);
-    --panel-btn: hsl(var(--panel-hue), 3%, 40%);
-    --panel-btn-hover: hsl(var(--panel-hue), 3%, 45%);
-    --panel-btn-focus: hsl(var(--panel-hue), 3%, 50%);
-    --panel-btn-active: hsl(var(--panel-hue), 3%, 55%);
-    --panel-shadow: rgba(0, 0, 0, 0.25);
-    --panel-monitor-bg: hsla(var(--panel-hue), 7%, 0%, 0.2);
-    --panel-slider-fill: #ffd563;
-    --panel-border: hsla(var(--panel-hue), 7%, 75%, 0.22);
+    --color-hue: 84;
+
+    --color-text: hsl(var(--color-hue), 7%, 75%);
+    --color-text-muted: hsla(var(--color-hue), 7%, 75%, 0.7);
+    --color-border: hsla(var(--color-hue), 7%, 75%, 0.22);
+    --color-accent: #ffd563;
+    --color-focus: hsl(var(--color-hue), 3%, 50%);
+
+    --color-inset: hsla(var(--color-hue), 7%, 0%, 0.2);
+    --color-inset-ring: hsla(var(--color-hue), 7%, 75%, 0.1);
+    --color-inset-hover: hsla(var(--color-hue), 7%, 75%, 0.15);
+    --color-inset-focus: hsla(var(--color-hue), 7%, 75%, 0.2);
+
+    --shadow-control: rgba(0, 0, 0, 0.25);
+
     --app-width: min(92vw, 836px);
 }
 
@@ -52,7 +52,7 @@ textarea {
     font-size: 16px;
     font-weight: 400;
     letter-spacing: 0.06em;
-    color: var(--panel-fg);
+    color: var(--color-text);
 }
 
 .top-bar {
@@ -60,7 +60,7 @@ textarea {
     align-items: center;
     gap: 32px;
     padding: 12px 32px;
-    border: 1px solid var(--panel-border);
+    border: 1px solid var(--color-border);
     border-radius: 6px;
 }
 
@@ -101,8 +101,8 @@ textarea {
     min-width: 0;
     padding: 1px;
     border-radius: 4px;
-    background: var(--panel-monitor-bg);
-    box-shadow: inset 0 0 0 1px var(--panel-input-bg);
+    background: var(--color-inset);
+    box-shadow: inset 0 0 0 1px var(--color-inset-ring);
 }
 
 #viz {
@@ -125,7 +125,7 @@ textarea {
     position: relative;
     margin: 0;
     padding: 16px;
-    border: 1px solid var(--panel-border);
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     min-width: 0;
 }
@@ -143,7 +143,7 @@ textarea {
     letter-spacing: 0.06em;
     text-transform: uppercase;
     text-align: center;
-    color: var(--panel-fg-muted);
+    color: var(--color-text-muted);
 }
 
 .panel-body {
@@ -180,7 +180,7 @@ textarea {
     font-size: 12px;
     font-weight: 500;
     letter-spacing: 0.04em;
-    color: var(--panel-fg-muted);
+    color: var(--color-text-muted);
 }
 
 .slider-field {
@@ -201,9 +201,9 @@ textarea {
     padding: 0 6px;
     border: none;
     border-radius: 4px;
-    background: var(--panel-monitor-bg);
+    background: var(--color-inset);
     box-shadow: inset 0 0 0 1px #606060;
-    color: var(--panel-slider-fill);
+    color: var(--color-accent);
     font-size: 12px;
     text-align: right;
     appearance: textfield;
@@ -217,12 +217,21 @@ textarea {
 }
 
 .control-number:hover {
-    background: var(--panel-input-bg-hover);
+    background: var(--color-inset-hover);
 }
 
 .control-number:focus {
     outline: none;
-    background: var(--panel-input-bg-focus);
+    background: var(--color-inset-focus);
+}
+
+.control-number:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.control-number:disabled:hover {
+    background: var(--color-inset);
 }
 
 .toggle-row {
@@ -352,6 +361,11 @@ textarea {
     transition: transform 100ms ease-out;
 }
 
+.segmented-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .segmented-btn-glows {
     grid-area: stack;
     place-self: stretch;
@@ -363,7 +377,7 @@ textarea {
 .segmented-btn-glow {
     position: absolute;
     inset: 10px 4px;
-    background: var(--panel-slider-fill);
+    background: var(--color-accent);
     opacity: 0;
 }
 
@@ -515,8 +529,8 @@ textarea {
     gap: 2px;
     padding: 6px 8px;
     border-radius: 4px;
-    background: var(--panel-monitor-bg);
-    box-shadow: inset 0 0 0 1px var(--panel-input-bg);
+    background: var(--color-inset);
+    box-shadow: inset 0 0 0 1px var(--color-inset-ring);
     min-height: 52px;
 }
 
@@ -525,7 +539,7 @@ textarea {
     font-size: 28px;
     font-weight: 600;
     line-height: 1;
-    color: var(--panel-slider-fill);
+    color: var(--color-accent);
 }
 
 .octave-slider-wrap {
@@ -550,15 +564,15 @@ textarea {
     background-repeat: no-repeat;
     background-size: 1px 100%;
     background-image:
-        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
-        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
-        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
-        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
-        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
-        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
-        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
-        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted)),
-        linear-gradient(var(--panel-fg-muted), var(--panel-fg-muted));
+        linear-gradient(var(--color-text-muted), var(--color-text-muted)),
+        linear-gradient(var(--color-text-muted), var(--color-text-muted)),
+        linear-gradient(var(--color-text-muted), var(--color-text-muted)),
+        linear-gradient(var(--color-text-muted), var(--color-text-muted)),
+        linear-gradient(var(--color-text-muted), var(--color-text-muted)),
+        linear-gradient(var(--color-text-muted), var(--color-text-muted)),
+        linear-gradient(var(--color-text-muted), var(--color-text-muted)),
+        linear-gradient(var(--color-text-muted), var(--color-text-muted)),
+        linear-gradient(var(--color-text-muted), var(--color-text-muted));
     background-position:
         0% 0,
         12.5% 0,
@@ -590,13 +604,18 @@ textarea {
     cursor: pointer;
 }
 
+.control-slider:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .control-slider::-webkit-slider-runnable-track {
     height: 2px;
     border-radius: 1px;
     background: linear-gradient(
         to right,
-        var(--panel-slider-fill) 0%,
-        var(--panel-slider-fill) var(--slider-fill, 50%),
+        var(--color-accent) 0%,
+        var(--color-accent) var(--slider-fill, 50%),
         #606060 var(--slider-fill, 50%),
         #606060 100%
     );
@@ -610,7 +629,7 @@ textarea {
     border: none;
     border-radius: 2px;
     background: #E2DFC9;
-    box-shadow: 0 1px 2px var(--panel-shadow);
+    box-shadow: 0 1px 2px var(--shadow-control);
 }
 
 .control-slider::-moz-range-track {
@@ -623,7 +642,7 @@ textarea {
 .control-slider::-moz-range-progress {
     height: 2px;
     border-radius: 1px;
-    background: var(--panel-slider-fill);
+    background: var(--color-accent);
 }
 
 .control-slider::-moz-range-thumb {
@@ -632,16 +651,16 @@ textarea {
     border: none;
     border-radius: 2px;
     background: #E2DFC9;
-    box-shadow: 0 1px 2px var(--panel-shadow);
+    box-shadow: 0 1px 2px var(--shadow-control);
 }
 
 .control-slider:focus-visible::-webkit-slider-thumb {
-    outline: 2px solid var(--panel-btn-focus);
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
 }
 
 .control-slider:focus-visible::-moz-range-thumb {
-    outline: 2px solid var(--panel-btn-focus);
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
 }
 
@@ -653,6 +672,7 @@ textarea {
 
 .keyboard-sharps {
     position: relative;
+    z-index: 1;
     height: var(--key-width);
     margin-bottom: var(--key-gap);
 }
@@ -775,16 +795,39 @@ textarea {
     }
 
     #keyboard-root {
-        --key-width: calc((100% - 6 * var(--key-gap)) / 7);
+        width: 100%;
+        container-type: inline-size;
+        --key-width: calc((100cqw - 6 * var(--key-gap)) / 7);
+    }
+
+    .keyboard-sharps {
+        width: 100%;
     }
 
     .keyboard-naturals {
-        grid-template-columns: repeat(7, 1fr);
+        width: 100%;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
     }
 
     .piano-key {
-        width: auto;
+        min-width: 0;
+        padding: 5px 6px;
+        font-size: 11px;
+    }
+
+    .piano-key.natural {
+        width: 100%;
         height: auto;
         aspect-ratio: 1;
+    }
+
+    .piano-key.sharp {
+        width: var(--key-width);
+        height: auto;
+        aspect-ratio: 1;
+    }
+
+    .key-shortcut {
+        font-size: 10px;
     }
 }
