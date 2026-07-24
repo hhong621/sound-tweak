@@ -36,7 +36,7 @@ const SLIDER_TICK_SOUND = {
     filterType: 'highpass',
     filterFrequency: 5000,
     filterQ: 10.8,
-    gain: 0.5,
+    gain: 0.2,
     duration: 0.01,
     sustainOnPress: false,
 };
