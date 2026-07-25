@@ -47,7 +47,7 @@ const SLIDER_TICK_SOUND = {
     filterType: 'highpass',
     filterFrequency: 5000,
     filterQ: 10.8,
-    gain: 0.2,
+    gain: 0.1,
     duration: 0.01,
     sustainOnPress: false,
 };
@@ -60,7 +60,7 @@ const TOGGLE_CLICK_SOUNDS = [
         filterType: 'bandpass',
         filterFrequency: 6000,
         filterQ: 2,
-        gain: 0.6,
+        gain: 0.3,
         duration: 0.01,
         sustainOnPress: false,
         note: 'G',
@@ -73,7 +73,7 @@ const TOGGLE_CLICK_SOUNDS = [
         filterType: 'bandpass',
         filterFrequency: 6000,
         filterQ: 2,
-        gain: 0.6,
+        gain: 0.3,
         duration: 0.01,
         sustainOnPress: false,
         note: 'B',
@@ -100,7 +100,7 @@ const UI_BUTTON_UP_SOUND = {
     filterType: 'lowpass',
     filterFrequency: 12000,
     filterQ: 10,
-    gain: 0.2,
+    gain: 0.1,
     duration: 0.01,
     sustainOnPress: false,
 };
@@ -631,14 +631,19 @@ document.querySelectorAll('.piano-key').forEach((btn) => {
 
     const onRelease = (e) => {
         if (e.type === 'pointerup' && e.button !== 0) return;
-        if (!btn.hasPointerCapture(e.pointerId)) return;
-        btn.releasePointerCapture(e.pointerId);
+        if (btn.hasPointerCapture(e.pointerId)) {
+            btn.releasePointerCapture(e.pointerId);
+        }
         setKeyPressed(key, false);
         void releaseNote(note);
     };
 
     btn.addEventListener('pointerup', onRelease);
     btn.addEventListener('pointercancel', onRelease);
+    btn.addEventListener('lostpointercapture', () => {
+        setKeyPressed(key, false);
+        void releaseNote(note);
+    });
 });
 
 function isTextEntryControl(element) {
