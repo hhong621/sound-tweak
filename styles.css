@@ -43,7 +43,7 @@ textarea {
     width: min(92vw, calc(var(--app-content-max) + var(--app-shell-chrome)));
     max-width: 100%;
     margin: 0 auto;
-    padding: 24px 0 40px;
+    padding: 24px 0 16px;
     box-sizing: border-box;
 }
 
@@ -82,6 +82,32 @@ textarea {
     font-weight: 400;
     letter-spacing: 0.06em;
     color: var(--color-text);
+}
+
+.app-footer {
+    margin: 16px 0 0;
+    text-align: center;
+    font-family: 'Geist', sans-serif;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #5c5c5c;
+}
+
+.app-footer a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba(0, 0, 0, 0.25);
+    text-underline-offset: 2px;
+}
+
+.app-footer a:hover {
+    color: #1a1a1a;
+    text-decoration-color: rgba(0, 0, 0, 0.45);
+}
+
+.app-footer-sep {
+    margin: 0 8px;
+    opacity: 0.45;
 }
 
 .top-bar {
