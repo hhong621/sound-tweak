@@ -1,3 +1,14 @@
+const SETUP_AGENT_PROMPT = `Set up this project to play short tones from Sound Tweak exports (Web Audio API).
+
+1. Add a shared AudioContext and ensureAudioRunning() that resumes the context on the first user gesture.
+2. Implement playSound(audioContext, settings) for one-shot tones. When settings.sustainOnPress is true, also support press-and-hold sustain with a short release ramp on pointer/key up.
+3. Settings fields: frequency, oscillatorType, gain, duration, sustainOnPress. Optional filter: useFilter, filterType, filterFrequency, filterQ (oscillator → filter → gain when enabled).
+4. For one-shot sounds, ramp gain exponentially to ~0.001 over settings.duration.
+5. If exports include note and octave, keep them for naming or triggers; frequency is authoritative.
+6. Match this repo's module system and file layout. Do not add a build step unless the project already uses one.
+
+After this setup, I will paste JSON presets from Sound Tweak's Export Last Played to add individual sounds.`;
+
 const NOTE_FREQUENCIES = {
     C:  [16.35, 32.70, 65.41, 130.81, 261.63, 523.25, 1046.50, 2093.00, 4186.01],
     'C#': [17.32, 34.65, 69.30, 138.59, 277.18, 554.37, 1108.73, 2217.46, 4434.92],
@@ -297,7 +308,13 @@ const lastNoteDisplay = document.getElementById('last-note-display');
 const octaveDisplay = document.getElementById('octave-display');
 const octaveSlider = document.getElementById('octave-slider');
 const noteExportBtn = document.getElementById('note-export-btn');
+const initialSetupBtn = document.getElementById('initial-setup-btn');
+const setupModal = document.getElementById('setup-modal');
+const setupPromptEl = document.getElementById('setup-prompt');
+const setupCopyBtn = document.getElementById('setup-copy-btn');
 const playBtn = document.getElementById('play-btn');
+
+let setupModalPreviouslyFocused = null;
 
 let lastNote = null;
 let lastPlayed = null;
@@ -493,6 +510,18 @@ function syncFilterControlsEnabled() {
     });
 }
 
+const durationParamControls = [
+    document.getElementById('duration-slider'),
+    document.getElementById('duration-number'),
+];
+
+function syncDurationControlsEnabled() {
+    const enabled = !params.sustainOnPress;
+    durationParamControls.forEach((el) => {
+        el.disabled = !enabled;
+    });
+}
+
 bindParamControl({
     key: 'gain',
     slider: document.getElementById('gain-slider'),
@@ -519,10 +548,11 @@ bindParamControl({
     number: document.getElementById('filter-q-number'),
 });
 
-bindToggle(document.getElementById('sustain-toggle'), 'sustainOnPress');
+bindToggle(document.getElementById('sustain-toggle'), 'sustainOnPress', syncDurationControlsEnabled);
 bindToggle(document.getElementById('filter-toggle'), 'useFilter', syncFilterControlsEnabled);
 bindSegmentedGroup(filterTypeGroup, 'filterType');
 syncFilterControlsEnabled();
+syncDurationControlsEnabled();
 bindSegmentedGroup(document.getElementById('oscillator-type-group'), 'oscillatorType');
 
 function updateOctaveDisplay() {
@@ -588,17 +618,27 @@ async function releaseNote(note) {
 }
 
 document.querySelectorAll('.piano-key').forEach((btn) => {
-    btn.addEventListener('mousedown', (e) => {
+    const note = btn.dataset.note;
+    const key = btn.dataset.key;
+
+    btn.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
         e.preventDefault();
-        triggerNote(btn.dataset.note);
+        btn.setPointerCapture(e.pointerId);
+        setKeyPressed(key, true);
+        void triggerNote(note);
     });
-    btn.addEventListener('mouseup', (e) => {
-        e.preventDefault();
-        releaseNote(btn.dataset.note);
-    });
-    btn.addEventListener('mouseleave', () => {
-        releaseNote(btn.dataset.note);
-    });
+
+    const onRelease = (e) => {
+        if (e.type === 'pointerup' && e.button !== 0) return;
+        if (!btn.hasPointerCapture(e.pointerId)) return;
+        btn.releasePointerCapture(e.pointerId);
+        setKeyPressed(key, false);
+        void releaseNote(note);
+    };
+
+    btn.addEventListener('pointerup', onRelease);
+    btn.addEventListener('pointercancel', onRelease);
 });
 
 function isTextEntryControl(element) {
@@ -699,6 +739,55 @@ bindSliderStepTick(octaveSlider, (next) => {
     updateOctaveDisplay();
 });
 
+function openSetupModal() {
+    setupModalPreviouslyFocused = document.activeElement;
+    setupPromptEl.textContent = SETUP_AGENT_PROMPT;
+    setupModal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    setupCopyBtn.focus();
+}
+
+function closeSetupModal() {
+    setupModal.hidden = true;
+    document.body.style.overflow = '';
+    if (setupModalPreviouslyFocused?.focus) {
+        setupModalPreviouslyFocused.focus();
+    }
+    setupModalPreviouslyFocused = null;
+}
+
+initialSetupBtn.setAttribute('aria-haspopup', 'dialog');
+
+initialSetupBtn.addEventListener('click', () => {
+    openSetupModal();
+});
+
+setupModal.querySelectorAll('[data-setup-modal-dismiss]').forEach((el) => {
+    el.addEventListener('click', () => {
+        closeSetupModal();
+    });
+});
+
+setupModal.querySelector('.modal-dialog').addEventListener('click', (e) => {
+    e.stopPropagation();
+});
+
+setupCopyBtn.addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(SETUP_AGENT_PROMPT);
+        alert('Prompt copied to clipboard');
+    } catch {
+        alert('Could not copy to clipboard. Serve the page over localhost (e.g. npx serve .) and try again.');
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (setupModal.hidden) return;
+    if (e.key !== 'Escape') return;
+    e.preventDefault();
+    closeSetupModal();
+});
+
 noteExportBtn.addEventListener('click', async () => {
     if (!lastPlayed) {
         alert('Play a note or press Play first.');
@@ -748,6 +837,7 @@ playBtn.addEventListener('pointercancel', () => {
 });
 
 updateOctaveDisplay();
+setupPromptEl.textContent = SETUP_AGENT_PROMPT;
 document.querySelectorAll('.bar-btn').forEach(bindUiButtonPressSounds);
 setupControlFocusRelease(document.getElementById('app'));
 

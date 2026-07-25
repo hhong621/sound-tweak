@@ -18,13 +18,16 @@
 
     --shadow-control: rgba(0, 0, 0, 0.25);
 
-    --app-width: min(92vw, 836px);
+    --app-content-max: 836px;
+    --app-shell-padding: 24px;
+    --app-shell-chrome: calc(2 * var(--app-shell-padding) + 2px);
+    --app-width: min(calc(92vw - var(--app-shell-chrome)), var(--app-content-max));
 }
 
 body {
     margin: 0;
     min-height: 100vh;
-    background: #101010;
+    background: #f0f0f0;
     color: #e8e8ec;
     font-family: 'JetBrains Mono', monospace;
 }
@@ -37,12 +40,38 @@ textarea {
 }
 
 #app {
-    width: var(--app-width);
+    width: min(92vw, calc(var(--app-content-max) + var(--app-shell-chrome)));
+    max-width: 100%;
     margin: 0 auto;
-    padding: 28px 0 40px;
+    padding: 24px 0 40px;
+    box-sizing: border-box;
+}
+
+.app-shell {
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: 0;
+    width: 100%;
+    min-width: 0;
+    padding: var(--app-shell-padding);
+    border: 1px solid #dddddd;
+    border-radius: 24px;
+    background: #101010;
+    box-shadow:
+        0 4px 4px 0 rgba(0, 0, 0, 0.5),
+        0 4px 4px 4px rgba(0, 0, 0, 0.2);
+}
+
+.app-shell > * + * {
+    margin-top: 32px;
+}
+
+.app-shell > .app-title + .top-bar {
+    margin-top: 24px;
+}
+
+.app-shell > .oscillator-panel {
+    margin-top: 32px;
 }
 
 .app-title {
@@ -61,7 +90,29 @@ textarea {
     gap: 32px;
     padding: 12px 32px;
     border: 1px solid var(--color-border);
-    border-radius: 6px;
+    border-radius: 12px;
+}
+
+.top-bar-buttons {
+    display: contents;
+}
+
+#initial-setup-btn {
+    order: 1;
+}
+
+#viz-wrap {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 1px;
+    border-radius: 4px;
+    background: var(--color-inset);
+    box-shadow: inset 0 0 0 1px var(--color-inset-ring);
+}
+
+#note-export-btn {
+    order: 3;
 }
 
 .bar-btn {
@@ -96,13 +147,90 @@ textarea {
     transform: translateY(1px);
 }
 
-#viz-wrap {
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.modal[hidden] {
+    display: none;
+}
+
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+}
+
+.modal-dialog {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(100%, var(--app-content-max));
+    max-height: min(85vh, 640px);
+    margin: 0;
+    padding: 20px 16px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: #101010;
+    box-shadow:
+        0 4px 4px 0 rgba(0, 0, 0, 0.5),
+        0 4px 4px 4px rgba(0, 0, 0, 0.2);
+    text-align: left;
+}
+
+.modal-title {
+    margin: 0;
+    font-family: 'Geist', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text);
+}
+
+.modal-lead {
+    margin: 0;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    letter-spacing: 0.02em;
+    color: var(--color-text-muted);
+}
+
+.modal-prompt {
     flex: 1 1 auto;
-    min-width: 0;
-    padding: 1px;
+    min-height: 0;
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    border: none;
     border-radius: 4px;
     background: var(--color-inset);
     box-shadow: inset 0 0 0 1px var(--color-inset-ring);
+    color: var(--color-accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    user-select: all;
+}
+
+.modal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
 }
 
 #viz {
@@ -126,7 +254,7 @@ textarea {
     margin: 0;
     padding: 16px;
     border: 1px solid var(--color-border);
-    border-radius: 6px;
+    border-radius: 12px;
     min-width: 0;
 }
 
@@ -471,7 +599,12 @@ textarea {
 }
 
 .play-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
     height: 36px;
+    padding: 0 10px;
     border: none;
     border-radius: 2px;
     background: linear-gradient(180deg, #C5C2B3, #64635B);
@@ -498,6 +631,10 @@ textarea {
         inset 1px 1px 1px 0 rgba(0, 0, 0, 0.4),
         inset -1px -1px 0 0 rgba(0, 0, 0, 0.25);
     transform: translateY(1px);
+}
+
+.play-btn-shortcut {
+    color: #444444;
 }
 
 .readouts {
@@ -700,6 +837,7 @@ textarea {
     font-weight: 500;
     line-height: 1;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 .piano-key:focus {
@@ -767,6 +905,88 @@ textarea {
 }
 
 @media (max-width: 640px) {
+    #app {
+        padding: 16px 0 28px;
+    }
+
+    .app-shell {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "title"
+            "topbar"
+            "mid"
+            "osc"
+            "viz";
+    }
+
+    .app-shell > * + * {
+        margin-top: 0;
+    }
+
+    .app-shell > .app-title {
+        grid-area: title;
+    }
+
+    .app-shell > .mid-row {
+        grid-area: mid;
+        margin-top: 32px;
+    }
+
+    .app-shell > .oscillator-panel {
+        grid-area: osc;
+        margin-top: 24px;
+    }
+
+    .top-bar {
+        display: contents;
+    }
+
+    .top-bar-buttons {
+        display: flex;
+        grid-area: topbar;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 24px;
+        padding: 12px 16px;
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+    }
+
+    #viz-wrap {
+        grid-area: viz;
+        flex: none;
+        order: unset;
+        width: 100%;
+        margin-top: 24px;
+    }
+
+    #initial-setup-btn,
+    #note-export-btn {
+        order: unset;
+    }
+
+    .readouts {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .readouts > .control-panel:not(.note-panel) {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
+    }
+
+    .note-panel {
+        flex: 0 1 72px;
+        min-width: 0;
+    }
+
+    .oscillator-panel .oscillator-body {
+        gap: 32px;
+    }
+
     .mid-row {
         grid-template-columns: 1fr;
     }
@@ -780,18 +1000,9 @@ textarea {
         align-items: stretch;
     }
 
-    .top-bar {
-        flex-wrap: wrap;
-    }
-
     .bar-btn {
         flex: 1 1 calc(50% - 6px);
         min-width: 0;
-    }
-
-    #viz-wrap {
-        flex: 1 1 100%;
-        order: -1;
     }
 
     #keyboard-root {

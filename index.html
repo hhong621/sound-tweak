@@ -13,14 +13,17 @@
 </head>
 <body>
     <div id="app">
+        <div class="app-shell">
         <h1 class="app-title">SOUND TWEAK</h1>
 
         <div class="top-bar">
-            <button type="button" class="bar-btn" id="initial-setup-btn">Initial Setup</button>
+            <div class="top-bar-buttons">
+                <button type="button" class="bar-btn" id="initial-setup-btn">Initial Setup</button>
+                <button type="button" class="bar-btn" id="note-export-btn">Export Last Played</button>
+            </div>
             <div id="viz-wrap" aria-hidden="true">
                 <canvas id="viz"></canvas>
             </div>
-            <button type="button" class="bar-btn" id="note-export-btn">Export Last Played</button>
         </div>
 
         <div class="mid-row">
@@ -99,7 +102,10 @@
                                 <input type="number" class="control-number" id="frequency-number" min="20" max="4000" step="1" value="440" aria-label="Frequency value">
                             </div>
                         </div>
-                        <button type="button" class="play-btn" id="play-btn">Play</button>
+                        <button type="button" class="play-btn" id="play-btn">
+                            <span class="play-btn-label">Play</span>
+                            <span class="play-btn-shortcut">shift + space</span>
+                        </button>
                     </div>
                     <div class="control-row oscillator-type-row">
                         <span class="control-label">Type</span>
@@ -189,6 +195,20 @@
                 </div>
             </div>
         </fieldset>
+        </div>
+    </div>
+
+    <div class="modal" id="setup-modal" hidden>
+        <div class="modal-backdrop" data-setup-modal-dismiss tabindex="-1" aria-hidden="true"></div>
+        <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="setup-modal-title">
+            <h2 class="modal-title" id="setup-modal-title">Initial Setup</h2>
+            <p class="modal-lead">Paste this into your coding agent once per project before adding exported sound presets.</p>
+            <pre class="modal-prompt" id="setup-prompt"></pre>
+            <div class="modal-actions">
+                <button type="button" class="bar-btn" id="setup-copy-btn">Copy Prompt</button>
+                <button type="button" class="bar-btn" id="setup-close-btn" data-setup-modal-dismiss>Close</button>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="main.js"></script>

@@ -14,7 +14,7 @@ Click **Play** once to unlock audio (browsers require a user gesture).
 
 ## Controls
 
-**Top bar** — spectrum visualizer (center), **Export Last Played** (last note + current settings as JSON). **Initial Setup** is a placeholder with no behavior yet.
+**Top bar** — spectrum visualizer (center), **Initial Setup** (agent prompt for one-time project setup), **Export Last Played** (last note + current settings as JSON).
 
 **Gain Node** — gain, duration, sustain-on-press toggle.
 
