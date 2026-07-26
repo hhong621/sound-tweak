@@ -1021,6 +1021,10 @@ textarea {
         grid-template-columns: 1fr;
     }
 
+    .oscillator-type-row .segmented {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .oscillator-main {
         flex-direction: column;
         align-items: stretch;
