@@ -82,24 +82,24 @@ const TOGGLE_CLICK_SOUNDS = [
 ];
 
 const UI_BUTTON_DOWN_SOUND = {
-    frequency: 630,
+    frequency: 300,
     oscillatorType: 'sine',
     useFilter: true,
-    filterType: 'bandpass',
+    filterType: 'lowpass',
     filterFrequency: 2400,
     filterQ: 1,
-    gain: 0.2,
+    gain: 0.3,
     duration: 0.01,
     sustainOnPress: false,
 };
 
 const UI_BUTTON_UP_SOUND = {
-    frequency: 2000,
+    frequency: 1400,
     oscillatorType: 'triangle',
     useFilter: true,
-    filterType: 'lowpass',
-    filterFrequency: 12000,
-    filterQ: 10,
+    filterType: 'highpass',
+    filterFrequency: 2000,
+    filterQ: 24,
     gain: 0.1,
     duration: 0.01,
     sustainOnPress: false,
